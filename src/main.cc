@@ -2,5 +2,5 @@
 
 int main()
 {
-    std::cout << "coucou\n";
+	print_arch();
 }
