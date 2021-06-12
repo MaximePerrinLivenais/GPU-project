@@ -1,4 +1,4 @@
-#include <iostream>
+#include "test.cuh"
 
 int main()
 {
