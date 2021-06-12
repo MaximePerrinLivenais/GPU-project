@@ -17,11 +17,13 @@ include_directories("src/" ${OpenCV_INCLUDE_DIRS})
 
 set(SRC_CPU
     "src/main.cc"
+    "src/misc/image-load.cc"
+    "src/misc/image-load.hh"
 )
 
 set(SRC_GPU
-    "src/test.cu"
-    "src/test.cuh"
+    "src/lbp/lbp.cu"
+    "src/lbp/lbp.cuh"
 )
 
 add_executable(cpu-lbp-engine)
