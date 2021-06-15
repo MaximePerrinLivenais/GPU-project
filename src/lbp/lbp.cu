@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <stdio.h>
+#include <stdlib.h>
 #include <iostream>
 
 __global__ void lbp_value_kernel(const unsigned char* image,
@@ -10,53 +11,105 @@ __global__ void lbp_value_kernel(const unsigned char* image,
                                     const int height,
                                     const size_t pitch)
 {
-    /*
-    #ifdef __CUDA_ARCH__
-        printf("CUDA architecture of the current running device code: %d.\n", __CUDA_ARCH__);
-        printf("Image height: %d. Image width: %d.\n", height, width);
-    #endif
-    */
-
     int x = blockDim.x * blockIdx.x + threadIdx.x;
     int y = blockDim.y * blockIdx.y + threadIdx.y;
 
-    auto tile_index = blockIdx.y * width / 16 + blockIdx.x;
-    if (tile_index != 510 || x >= width || y >= height)
+
+    if (x >= width || y >= height)
         return;
 
-    //printf("%d\n", tile_index);
-    printf("(%d, %d)\n", x, y);
+    auto pixel_value = image[y * width + x];
+
+    unsigned char lbp_value = 0;
+
+    lbp_value |= (threadIdx.y > 0
+                    && image[(y - 1) * width + x] >= pixel_value) << 7;
+    lbp_value |= (threadIdx.y > 0 && threadIdx.x > 0
+                    && image[(y - 1) * width + x - 1] >= pixel_value) << 6;
+    lbp_value |= (threadIdx.x > 0
+                    && image[y * width + x - 1] >= pixel_value) << 5;
+    lbp_value |= (threadIdx.y < 15 && threadIdx.x > 0
+                    && image[(y + 1) * width + x - 1] >= pixel_value) << 4;
+    lbp_value |= (threadIdx.y < 15
+                    && image[(y + 1) * width + x] >= pixel_value) << 3;
+    lbp_value |= (threadIdx.y < 15 && threadIdx.x < 15
+                    && image[(y + 1) * width + x + 1] >= pixel_value) << 2;
+    lbp_value |= (threadIdx.x < 15
+                    && image[y * width + x + 1] >= pixel_value) << 1;
+    lbp_value |= threadIdx.y > 0 && threadIdx.x < 15
+                    && image[(y - 1) * width + x + 1] >= pixel_value;
+
+    auto tile_index = blockIdx.y * width / 16 + blockIdx.x;
+    auto pixel_index_in_tile = blockDim.x * threadIdx.y + threadIdx.x;
+
+    auto lbp_index = lbp_values + tile_index * pitch + pixel_index_in_tile * sizeof(unsigned char);
+    *lbp_index = lbp_value;
+
+    //printf("(%d, %d) = %u\n", x, y, lbp_value);
 }
 
 void compute_lbp_values(const unsigned char *image, const size_t width, const size_t height)
 {
     cudaError_t rc = cudaSuccess;
 
-    auto tiles_number = width * height / 256;
+    unsigned char* cuda_image;
+    auto pixels_number = width * height;
 
-    //std::cout << "Tiles : " << tiles_number << "\n";
+    rc = cudaMalloc(&cuda_image, pixels_number * sizeof(unsigned char));
+    if (rc)
+    {
+        std::cout << "Could not allocate memory for the image on the device\n";
+        exit(EXIT_FAILURE);
+    }
+
+    rc = cudaMemcpy(cuda_image, image, pixels_number * sizeof(unsigned char), cudaMemcpyHostToDevice);
+    if (rc)
+    {
+        std::cout << "Could not copy image data from host to device\n";
+        exit(EXIT_FAILURE);
+    }
 
     unsigned char* lbp_values;
     size_t pitch;
+    auto tiles_number = width * height / 256;
 
     rc = cudaMallocPitch(&lbp_values, &pitch, 256 * sizeof(unsigned char), tiles_number);
     if (rc)
     {
-        std::cout << "Error in cudaMallocPitch\n";
-        exit(1);
+        std::cout << "Could not allocate memory for lbp values buffer\n";
+        exit(EXIT_FAILURE);
     }
 
     int bsize = 16;
-    int w = std::ceil((float)width / bsize);
-    int h = std::ceil((float)height / bsize);
+    int w = std::ceil((float) width / bsize);
+    int h = std::ceil((float) height / bsize);
 
-    std::cout << "Running kernel of size ("
-              << w << ", " << h << ")\n";
+    /*std::cout << "Running kernel of size ("
+              << w << ", " << h << ")\n";*/
 
     dim3 dim_block(bsize, bsize);
     dim3 dim_grid(w, h);
 
-    lbp_value_kernel<<<dim_grid, dim_block>>>(image, lbp_values, width, height, pitch);
+    lbp_value_kernel<<<dim_grid, dim_block>>>(cuda_image, lbp_values, width, height, pitch);
 
     cudaDeviceSynchronize();
+
+    /*std::cout << (int) image[0] << " " << (int) image[1] << " " << (int) image[2] << "\n"
+                << (int) image[width] << " " << (int) image[width + 1] << " " << (int) image[width + 2] << "\n"
+                << (int) image[2 * width] << " " << (int) image[2 * width + 1] << " " << (int) image[2 * width + 2] << "\n";
+
+    unsigned char* output = (unsigned char*) malloc(256 * sizeof(unsigned char));
+    if (output == NULL)
+    {
+        std::cout << "CRINGE\n";
+        exit(EXIT_FAILURE);
+    }
+
+    cudaMemcpy2D(output, 0, lbp_values, pitch, 256 * sizeof(unsigned char), 1, cudaMemcpyDeviceToHost);
+
+    for (auto i = 0; i < 256; i++)
+        std::cout << i << ": " << (int) *(output + i) << "\n";*/
+
+    cudaFree(cuda_image);
+    cudaFree(lbp_values);
 }
