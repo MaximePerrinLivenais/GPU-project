@@ -46,20 +46,9 @@ __global__ void lbp_value_kernel(const unsigned char* image,
     // printf("(%d, %d) = %u\n", x, y, lbp_value);
 }
 
-__global__ void init_histo_kernel(unsigned char* histo_tab, const size_t tiles_number, const size_t pitch)
-{
-    int x = threadIdx.x;
-    int y = blockIdx.x;
-
-    if (x >= 256 || y >= tiles_number)
-        return;
-
-    auto index = histo_tab + y * pitch + x * sizeof(unsigned char);
-    *index = 0;
-}
-
 __global__ void compute_histo_kernel(unsigned char *histo_tab, const unsigned char* lbp_values)
 {
+    
 }
 
 void compute_lbp_values(const unsigned char* image, const size_t width,
@@ -118,11 +107,6 @@ void compute_lbp_values(const unsigned char* image, const size_t width,
         std::cout << "Could not allocate memory for lbp values buffer\n";
         exit(EXIT_FAILURE);
     }
-
-    //int histo_thread_per_block = 256;
-    //int histo_block_per_grid = tiles_number;
-
-    //init_histo_kernel<<<histo_block_per_grid, histo_thread_per_block>>>(histo_tab, pitch, tiles_number);
 
     cudaMemset2D(histo_tab, histo_pitch, 0, 256, tiles_number);
 
