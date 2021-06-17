@@ -46,9 +46,20 @@ __global__ void lbp_value_kernel(const unsigned char* image,
     // printf("(%d, %d) = %u\n", x, y, lbp_value);
 }
 
-__global__ void compute_histo_kernel(unsigned char *histo_tab, const unsigned char* lbp_values)
+__global__ void compute_histo_kernel(int* histo_tab,
+                                        const unsigned char* lbp_values,
+                                        const size_t height,
+                                        const size_t pitch)
 {
-    
+    int x = threadIdx.x;
+    int y = blockIdx.x;
+
+    if (x >= 256 || y >= height)
+        return;
+
+    auto lbp_index = y * pitch + x * sizeof(unsigned char);
+    atomicAdd(&(histo_tab[lbp_values[lbp_index]]), 1);
+    __syncthreads();
 }
 
 void compute_lbp_values(const unsigned char* image, const size_t width,
@@ -99,16 +110,21 @@ void compute_lbp_values(const unsigned char* image, const size_t width,
 
     cudaDeviceSynchronize();
 
-    unsigned char* histo_tab;
+    int* histo_tab;
     size_t histo_pitch;
-    rc = cudaMallocPitch(&histo_tab, &histo_pitch, 256 * sizeof(unsigned char), tiles_number);
+    rc = cudaMallocPitch(&histo_tab, &histo_pitch, 256 * sizeof(int), tiles_number);
     if (rc)
     {
         std::cout << "Could not allocate memory for lbp values buffer\n";
         exit(EXIT_FAILURE);
     }
 
-    cudaMemset2D(histo_tab, histo_pitch, 0, 256, tiles_number);
+    cudaMemset2D(histo_tab, histo_pitch, 0, 256 * sizeof(int), tiles_number);
+
+    int histo_threads = 256;
+    int histo_blocks = tiles_number;
+
+    compute_histo_kernel<<<histo_blocks, histo_threads>>>(histo_tab, lbp_values, tiles_number, histo_pitch);
 
     /*std::cout << (int) image[0] << " " << (int) image[1] << " " << (int)
     image[2] << "\n"
