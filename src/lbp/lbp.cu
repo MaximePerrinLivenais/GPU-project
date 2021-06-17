@@ -40,16 +40,17 @@ __global__ void lbp_value_kernel(const unsigned char* image,
     auto pixel_index_in_tile = blockDim.x * threadIdx.y + threadIdx.x;
 
     auto lbp_index = lbp_values + tile_index * pitch
-        + pixel_index_in_tile * sizeof(unsigned char);
+        + pixel_index_in_tile;
     *lbp_index = lbp_value;
 
     // printf("(%d, %d) = %u\n", x, y, lbp_value);
 }
 
 __global__ void compute_histo_kernel(int* histo_tab,
-                                        const unsigned char* lbp_values,
-                                        const size_t height,
-                                        const size_t pitch)
+                                        const size_t histo_pitch,
+                                        unsigned char* lbp_values,
+                                        const size_t lbp_pitch,
+                                        const size_t height)
 {
     int x = threadIdx.x;
     int y = blockIdx.x;
@@ -57,9 +58,17 @@ __global__ void compute_histo_kernel(int* histo_tab,
     if (x >= 256 || y >= height)
         return;
 
-    auto lbp_index = y * pitch + x * sizeof(unsigned char);
-    atomicAdd(&(histo_tab[lbp_values[lbp_index]]), 1);
+    unsigned char* lbp_index = lbp_values + y * lbp_pitch + x;
+    int* histo_index =  histo_tab + y * histo_pitch + *lbp_index;
+
+    //assert(y == 0);
+    //printf("histo_tab: %p, histo_index: %p, lbp_value: %x\n", histo_tab, histo_index, *lbp_index * sizeof(int));
+    //printf("LBP_INDEX: %d - y * 256 + x: %d\nhisto_index: %d\n\n", *lbp_index, y * 256 + x, histo_index);
+
+    atomicAdd(histo_index, 1);
     __syncthreads();
+
+    //printf("histo_value: %d at %d\n", *histo_index, *lbp_index);
 }
 
 void compute_lbp_values(const unsigned char* image, const size_t width,
@@ -124,8 +133,11 @@ void compute_lbp_values(const unsigned char* image, const size_t width,
     int histo_threads = 256;
     int histo_blocks = tiles_number;
 
-    compute_histo_kernel<<<histo_blocks, histo_threads>>>(histo_tab, lbp_values, tiles_number, histo_pitch);
+    std::cout << "lbp_pitch: " << lbp_pitch << ", " << "histo_pitch: " << histo_pitch << "\n";
 
+    compute_histo_kernel<<<1, histo_threads>>>(histo_tab, histo_pitch, lbp_values, lbp_pitch, tiles_number);
+
+    cudaDeviceSynchronize();
     /*std::cout << (int) image[0] << " " << (int) image[1] << " " << (int)
     image[2] << "\n"
                 << (int) image[width] << " " << (int) image[width + 1] << "
@@ -135,18 +147,30 @@ void compute_lbp_values(const unsigned char* image, const size_t width,
     << " " << (int) image[2 * width + 2] << "\n";
     */
 
-
-    unsigned char* output = (unsigned char*) malloc(256 * sizeof(unsigned char));
+    int* output = (int*) malloc(256 * tiles_number * sizeof(int));
     if (output == NULL)
     {
         std::cout << "CRINGE\n";
         exit(EXIT_FAILURE);
     }
 
-    cudaMemcpy2D(output, 0, histo_tab, histo_pitch, 256 * sizeof(unsigned char), 1, cudaMemcpyDeviceToHost);
+    cudaMemcpy2D(output, 256 * sizeof(int), histo_tab, histo_pitch, 256 * sizeof(int), tiles_number, cudaMemcpyDeviceToHost);
 
-    for (auto i = 0; i < 256; i++)
-        std::cout << i << ": " << (int) *(output + i) << "\n";
+    std::cout << "HISTO\n" << sizeof(unsigned char) << "\n";
+
+    auto sum = 0;
+    for (auto i = 0; i < 256 * tiles_number; i++)
+    {
+       int value = *(output + i);
+       std::cout << i << ": " << value  << "\n";
+       sum += value;
+    }
+
+    assert(sum == 256 * tiles_number);
+
+    std::cout << "Sum: " << sum << "\n";
+
+    std::free(output);
 
     cudaFree(cuda_image);
     cudaFree(lbp_values);
