@@ -1,3 +1,8 @@
+import sys
+from skimage import io
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.cluster import KMeans
 
 def split_image_into_tiles(image, tile_size = 16):
     tiles = []
@@ -23,12 +28,6 @@ def compute_lbp_value(lbp_window):
     return lbp_value
 
 
-def pad_all_tiles(tiles):
-
-    # just apply pad_tile to all tiles
-    # TODO: np.vectorize
-    return [pad_tile(tile) for tile in tiles]
-
 def pad_tile(tile):
 
     # We create a zeros matrix and we insert the tile inside with an offset
@@ -48,9 +47,9 @@ def compute_texton_histogram(tile):
     for i in range(1, size - 1):
         for j in range(1, size - 1):
             lbp_window = tile[i - 1: i + 2, j - 1: j + 2]
-            texton_histogram[compute_lbp_value(window)]
+            texton_histogram[compute_lbp_value(lbp_window)] += 1
 
-    return texton_histogram
+    return texton_histogram / texton_histogram.max()
 
 
 
@@ -58,19 +57,48 @@ def compute_image_patch_histogram(tiles):
 
     image_histo = []
 
-    for tile in tiles:
-        texton_histogram = compute_texton_histogram(tile)
-        image_histo.extend(texton_histogram)
+    for i, tile in enumerate(tiles):
+        texton_histogram = compute_texton_histogram(pad_tile(tile))
+        image_histo.append(texton_histogram)
+        print(f"{i} / {len(tiles)}")
 
-    return image_histo
+    return np.array(image_histo)
 
 
 
-def lbp(image, tile_size = 16):
+def lbp(image, tile_size = 16, n_cluster = 16):
 
+    print(image.shape)
     tiles = split_image_into_tiles(image, tile_size)
-    tiles = pad_all_tiles(tiles)
-
-    histogram = compute_patch_histogram(tiles)
+    histogram = compute_image_patch_histogram(tiles)
 
 
+    np.save(f"histo{tile_size}.npy", histogram)
+
+    #histogram = np.load(f"histo{tile_size}.npy")
+
+    #kmeans = KMeans(n_clusters=n_cluster, random_state=128).fit(histogram)
+    #nearest_centroid = kmeans.predict(histogram).reshape(image.shape[0] // tile_size, image.shape[1] // tile_size)
+
+    #print(nearest_centroid.shape)
+
+
+
+    #color_image = nearest_centroid.repeat(tile_size, axis=0).repeat(tile_size, axis=1)
+
+
+    #return color_image
+
+
+if __name__ == "__main__":
+
+    image_path = sys.argv[1]
+    image = io.imread(image_path, as_gray=True)
+
+    for i in [16, 32, 64, 128, 256, 512, 1024]:
+        lbp(image, tile_size = i)
+        print(i, " finished")
+    #image_color = lbp(image, 32, 64)
+    #plt.imshow(image_color)
+    #plt.show()
+    #print(image_color.shape)
