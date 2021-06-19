@@ -24,6 +24,8 @@ set(SRC_CPU
 set(SRC_GPU
     "src/lbp/lbp.cu"
     "src/lbp/lbp.cuh"
+    "src/neighbors/knn.cu"
+    "src/neighbors/knn.cuh"
 )
 
 add_executable(cpu-lbp-engine)
