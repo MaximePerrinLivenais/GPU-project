@@ -46,7 +46,12 @@ __global__ void lbp_value_kernel(const unsigned char* image,
         + pixel_index_in_tile;
     *lbp_index = lbp_value;
 
-    // printf("(%d, %d) = %u\n", x, y, lbp_value);
+    //printf("(%d, %d) = %u\n", x, y, lbp_value);
+}
+
+__global__ void test()
+{
+    printf("%d\n", gridDim.x * blockIdx.y + blockIdx.x);
 }
 
 __global__ void compute_histo_kernel(int* histo_tab,
@@ -82,6 +87,13 @@ __global__ void compute_histo_kernel(int* histo_tab,
 int* compute_lbp_values(const unsigned char* image, const size_t width,
                         const size_t height)
 {
+
+    size_t sz;
+    cudaDeviceGetLimit(&sz, cudaLimitPrintfFifoSize);
+    std::cout << "OOOOOOO: " << sz << std::endl;
+    sz = 1048576 * 100;
+    cudaDeviceSetLimit(cudaLimitPrintfFifoSize, sz);
+
     cudaError_t rc = cudaSuccess;
 
     unsigned char* cuda_image;
@@ -122,12 +134,13 @@ int* compute_lbp_values(const unsigned char* image, const size_t width,
 
     dim3 lbp_dim_block(bsize, bsize);
     dim3 lbp_dim_grid(w, h);
+    //test<<<lbp_dim_grid, lbp_dim_block>>>();
 
     lbp_value_kernel<<<lbp_dim_grid, lbp_dim_block>>>(cuda_image, lbp_values, width, height, lbp_pitch);
 
     cudaDeviceSynchronize();
 
-    std::cout << "w " << w << " and h " << h << "\n";
+    //std::cout << "w " << w << " and h " << h << "\n";
 
     int* histo_tab;
     size_t histo_pitch;
