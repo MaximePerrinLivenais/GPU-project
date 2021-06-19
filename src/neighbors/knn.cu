@@ -1,9 +1,51 @@
 #include <iostream>
+#include <fstream>
 #include "knn.cuh"
 
 #define N_CLUSTERS = 16
 #define TILE_SIZE = 256 // A MOVE DANS UN HH
 
+void parse_line(std::string line,
+        std::vector<centroid_type>& centroids,
+        const std::string delimiter = ",")
+{
+    size_t pos = 0;
+    std::string token;
+
+    while ((pos = line.find(delimiter)) != std::string::npos)
+    {
+        token = line.substr(0, pos);
+        centroids.emplace_back(std::stod(token));
+
+        line.erase(0, pos + delimiter.length());
+    }
+
+    centroids.emplace_back(std::stod(line));
+}
+
+std::vector<centroid_type> load_kmean_centroids(const std::string& filepath)
+{
+    std::ifstream file(filepath);
+
+    if (!file.is_open())
+    {
+        std::cout << "Error while opening centroids in: " << filepath << ".\n";
+        exit(1);
+    }
+
+    std::string buffer;
+    std::vector<centroid_type> centroids;
+
+    while (getline(file, buffer))
+    {
+        if (buffer.empty())
+            continue;
+
+        parse_line(buffer, centroids);
+    }
+
+    return centroids;
+}
 
 __global__ void compute_nearest_neighbors(const int* histo_tab,
                                         const size_t histo_pitch,
