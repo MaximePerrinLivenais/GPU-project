@@ -19,6 +19,8 @@ set(SRC_CPU
     "src/main.cc"
     "src/misc/image-load.cc"
     "src/misc/image-load.hh"
+    "src/misc/histo_to_file.cc"
+    "src/misc/histo_to_file.hh"
 )
 
 set(SRC_GPU
