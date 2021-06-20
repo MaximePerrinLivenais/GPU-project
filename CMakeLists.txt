@@ -31,6 +31,8 @@ set(SRC_GPU
     "src/lbp/lbp.cuh"
     "src/neighbors/knn.cu"
     "src/neighbors/knn.cuh"
+    "src/misc/reconstruct_image.cu"
+    "src/misc/reconstruct_image.cuh"
 )
 
 add_executable(cpu-lbp-engine)

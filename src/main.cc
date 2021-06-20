@@ -1,15 +1,15 @@
+#include <iostream>
 #include <opencv2/imgcodecs.hpp>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "lbp/lbp.cuh"
-#include "neighbors/knn.cuh"
-#include "misc/image-load.hh"
-#include "misc/histo_to_file.hh"
-#include "misc/load_kmeans.hh"
 #include "misc/build_lut.hh"
-
-#include <iostream>
-#include <unistd.h>
-#include <sys/wait.h>
+#include "misc/histo_to_file.hh"
+#include "misc/image-load.hh"
+#include "misc/load_kmeans.hh"
+#include "misc/reconstruct_image.cuh"
+#include "neighbors/knn.cuh"
 
 int main()
 {
@@ -25,9 +25,16 @@ int main()
     auto centroids_vector = load_kmean_centroids(filepath);
 
     auto tiles_number = image.cols * image.rows / 256;
-    int* nearest_neighbors = k_nearest_neighbors(histo, centroids_vector.data(), tiles_number);
+    int* nearest_neighbors =
+        k_nearest_neighbors(histo, centroids_vector.data(), tiles_number);
 
-    auto output_image = reconstruct_image(nearest_neighbors, image.cols, image.rows);
+    unsigned char* output_image =
+        reconstruct_image(nearest_neighbors, image.cols, image.rows);
+
+    cv::Mat reconstruction(image.rows / 16, image.cols / 16, CV_8UC3,
+                           output_image);
+
+    cv::imwrite("reconstruction.png", reconstruction);
 
     std::cout << lut[0][1] << '\n';
 
