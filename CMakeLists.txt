@@ -4,6 +4,18 @@ project(IRGPU LANGUAGES CXX CUDA)
 
 find_package(OpenCV REQUIRED)
 
+include(FetchContent)
+FetchContent_Declare(
+  GoogleBenchmark
+  URL https://github.com/google/benchmark/archive/v1.5.5.tar.gz
+)
+if (NOT GoogleBenchmark_POPULATED)
+  FetchContent_Populate(GoogleBenchmark)
+  set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "From Gtest")
+  set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "From Gtest")
+  add_subdirectory(${googlebenchmark_SOURCE_DIR} ${googlebenchmark_BINARY_DIR})
+endif()
+
 include(CheckLanguage)
 check_language(CUDA)
 
@@ -16,7 +28,6 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -fsanitize=address")
 include_directories("src/" ${OpenCV_INCLUDE_DIRS})
 
 set(SRC_CPU
-    "src/main.cc"
     "src/misc/image-load.cc"
     "src/misc/image-load.hh"
     "src/misc/histo_to_file.cc"
@@ -35,7 +46,7 @@ set(SRC_GPU
     "src/misc/reconstruct_image.cuh"
 )
 
-add_executable(cpu-lbp-engine)
+add_executable(cpu-lbp-engine src/main.cc)
 target_sources(cpu-lbp-engine PRIVATE "${SRC_CPU}")
 
 add_library(gpu-lbp-engine SHARED ${SRC_GPU})
@@ -46,3 +57,9 @@ target_link_libraries(cpu-lbp-engine
     "opencv_core;opencv_imgcodecs;opencv_highgui"
     gpu-lbp-engine)
 
+add_executable(bench src/bench/bench.cc)
+target_sources(bench PRIVATE "${SRC_CPU}")
+target_link_libraries(bench
+    "opencv_core;opencv_imgcodecs;opencv_highgui"
+    gpu-lbp-engine
+    benchmark)
