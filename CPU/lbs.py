@@ -1,7 +1,9 @@
 import sys
 from skimage import io
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import numpy as np
+import cv2
 from sklearn.cluster import KMeans
 from sklearn.neighbors import KNeighborsClassifier
 
@@ -24,7 +26,7 @@ def compute_lbp_value(lbp_window):
 
     for i, index in enumerate(index_table):
         row_index, col_index = index
-        lbp_value += (lbp_window[row_index][col_index] >= pixel_value) ** i
+        lbp_value = lbp_value | (int(lbp_window[row_index][col_index] >= pixel_value) << i)
 
     return lbp_value
 
@@ -66,34 +68,39 @@ def compute_image_patch_histogram(tiles):
     return np.array(image_histo)
 
 
+def random_lut(n_values):
+    '''Build a random LUT for `n_values` elements (sequential integers).'''
+    samples = np.linspace(0, 1, n_values)  # take n_values values between 0 and 1 (evenly spaced)
+    rng = np.random.default_rng(3)  # get a RNG with a specific seed
+    samples = rng.permutation(samples)  # shuffle our values
+    colors = cm.hsv(samples, alpha=None, bytes=True)  # get corresponding colors from the HSV color map
+    return colors[...,:3]  # remove alpha channel and return
+
 
 def lbp(image, tile_size = 16, n_cluster = 16):
 
-    '''print(image.shape)
+    print(image.shape)
     tiles = split_image_into_tiles(image, tile_size)
     histogram = compute_image_patch_histogram(tiles)
 
 
-    np.save(f"histo{tile_size}.npy", histogram)'''
+    np.save(f"histo{tile_size}.npy", histogram)
 
-    histogram = np.load(f"histo{tile_size}.npy")
+    #histogram = np.load(f"histo{tile_size}.npy")
 
     kmeans = KMeans(n_clusters=n_cluster, random_state=128).fit(histogram)
     nearest_centroid = kmeans.predict(histogram)
 
 
-    print(nearest_centroid.shape)
-    print(histo.shape)
     neigh = KNeighborsClassifier(n_neighbors = n_cluster, metric="euclidean")
     neigh.fit(histogram, nearest_centroid)
 
     neigh_prediction = neigh.predict(histogram).reshape(image.shape[0] // tile_size, image.shape[1] // tile_size)
 
+    lut = random_lut(n_cluster)
+    recolored_image = lut[neigh_prediction]
 
-
-
-
-    return neigh_prediction
+    return recolored_image
 
 
 if __name__ == "__main__":
@@ -102,6 +109,7 @@ if __name__ == "__main__":
     image = io.imread(image_path, as_gray=True)
 
     image_color = lbp(image, 32, 64)
+    cv2.imwrite("filename.png", image_color)
     plt.imshow(image_color)
     plt.show()
     print(image_color.shape)
