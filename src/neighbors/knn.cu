@@ -59,7 +59,7 @@ __global__ void compute_nearest_neighbors(const int* histo_tab,
     //printf("result: %d\n", *result_ptr);
 }
 
-void k_nearest_neighbors(const int* histo_tab, const float* clusters, const size_t tiles_number)
+int* k_nearest_neighbors(const int* histo_tab, const float* clusters, const size_t tiles_number)
 {
 
     /*for (int i = 0; i < 16; ++i)
@@ -146,8 +146,10 @@ void k_nearest_neighbors(const int* histo_tab, const float* clusters, const size
         printf("value: %d at %d\n", output[i], i);
     }
 
-    std::free(output);
+    // std::free(output);
 
     cudaFree(cuda_clusters);
     cudaFree(result);
+
+    return output;
 }

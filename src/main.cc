@@ -5,40 +5,11 @@
 #include "misc/image-load.hh"
 #include "misc/histo_to_file.hh"
 #include "misc/load_kmeans.hh"
+#include "misc/build_lut.hh"
 
 #include <iostream>
 #include <unistd.h>
 #include <sys/wait.h>
-
-
-void launch_python_kmeans(const std::string script_name,
-        const std::string output_file)
-{
-    pid_t pid = fork();
-    if (pid == -1)
-    {
-        std::cout << "Error fork\n";
-        exit(EXIT_FAILURE);
-    }
-    else if (pid > 0) // Parent
-    {
-        std::cout << "Waiting child: " << pid << ".\n";
-
-        int return_status;
-        waitpid(pid, &return_status, 0);
-
-        std::cout << "Child returns " << return_status << ".\n";
-    }
-    else
-    {
-        char *argv_list[] = { (char *)"python", (char *)script_name.c_str(),
-            (char *)output_file.c_str(), (char*)NULL };
-
-        execvp("python", argv_list);
-        exit(EXIT_FAILURE);
-    }
-}
-
 
 int main()
 {
@@ -54,7 +25,11 @@ int main()
     auto centroids_vector = load_kmean_centroids(filepath);
 
     auto tiles_number = image.cols * image.rows / 256;
-    k_nearest_neighbors(histo, centroids_vector.data(), tiles_number);
+    int* nearest_neighbors = k_nearest_neighbors(histo, centroids_vector.data(), tiles_number);
+
+    auto output_image = reconstruct_image(nearest_neighbors, image.cols, image.rows);
+
+    std::cout << lut[0][1] << '\n';
 
     free(histo);
 }

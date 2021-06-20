@@ -23,6 +23,7 @@ set(SRC_CPU
     "src/misc/histo_to_file.hh"
     "src/misc/load_kmeans.cc"
     "src/misc/load_kmeans.hh"
+    "src/misc/build_lut.hh"
 )
 
 set(SRC_GPU
