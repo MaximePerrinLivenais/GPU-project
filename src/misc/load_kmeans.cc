@@ -13,12 +13,12 @@ void parse_line(std::string line,
     while ((pos = line.find(delimiter)) != std::string::npos)
     {
         token = line.substr(0, pos);
-        centroids.emplace_back(std::stod(token));
+        centroids.emplace_back(std::stof(token));
 
         line.erase(0, pos + delimiter.length());
     }
 
-    centroids.emplace_back(std::stod(line));
+    centroids.emplace_back(std::stof(line));
 }
 
 std::vector<centroid_type> load_kmean_centroids(const std::string& filepath)
