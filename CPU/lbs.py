@@ -3,6 +3,7 @@ from skimage import io
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.cluster import KMeans
+from sklearn.neighbors import KNeighborsClassifier
 
 def split_image_into_tiles(image, tile_size = 16):
     tiles = []
@@ -68,26 +69,31 @@ def compute_image_patch_histogram(tiles):
 
 def lbp(image, tile_size = 16, n_cluster = 16):
 
-    print(image.shape)
+    '''print(image.shape)
     tiles = split_image_into_tiles(image, tile_size)
     histogram = compute_image_patch_histogram(tiles)
 
 
-    np.save(f"histo{tile_size}.npy", histogram)
+    np.save(f"histo{tile_size}.npy", histogram)'''
 
-    #histogram = np.load(f"histo{tile_size}.npy")
+    histogram = np.load(f"histo{tile_size}.npy")
 
-    #kmeans = KMeans(n_clusters=n_cluster, random_state=128).fit(histogram)
-    #nearest_centroid = kmeans.predict(histogram).reshape(image.shape[0] // tile_size, image.shape[1] // tile_size)
-
-    #print(nearest_centroid.shape)
+    kmeans = KMeans(n_clusters=n_cluster, random_state=128).fit(histogram)
+    nearest_centroid = kmeans.predict(histogram)
 
 
+    print(nearest_centroid.shape)
+    print(histo.shape)
+    neigh = KNeighborsClassifier(n_neighbors = n_cluster, metric="euclidean")
+    neigh.fit(histogram, nearest_centroid)
 
-    #color_image = nearest_centroid.repeat(tile_size, axis=0).repeat(tile_size, axis=1)
+    neigh_prediction = neigh.predict(histogram).reshape(image.shape[0] // tile_size, image.shape[1] // tile_size)
 
 
-    #return color_image
+
+
+
+    return neigh_prediction
 
 
 if __name__ == "__main__":
@@ -95,10 +101,7 @@ if __name__ == "__main__":
     image_path = sys.argv[1]
     image = io.imread(image_path, as_gray=True)
 
-    for i in [16, 32, 64, 128, 256, 512, 1024]:
-        lbp(image, tile_size = i)
-        print(i, " finished")
-    #image_color = lbp(image, 32, 64)
-    #plt.imshow(image_color)
-    #plt.show()
-    #print(image_color.shape)
+    image_color = lbp(image, 32, 64)
+    plt.imshow(image_color)
+    plt.show()
+    print(image_color.shape)
