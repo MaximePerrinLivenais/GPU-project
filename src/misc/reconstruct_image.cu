@@ -2,16 +2,19 @@
 #include "reconstruct_image.cuh"
 
 __global__ void reconstruct_image_kernel(unsigned char* reconstruction,
-                                         // const size_t reconstruction_pitch,
                                          const int* nearest_neighbors,
                                          const size_t nearest_neighbors_size,
                                          const unsigned char* lut,
-                                         const size_t lut_size)
+                                         const size_t lut_size,
+                                         const size_t width)
 {
     // int x = blockDim.x * blockIdx.x + threadIdx.x;
     // int y = blockDim.y * blockIdx.y + threadIdx.y;
-    int tile_number = blockIdx.y * gridDim.x + blockIdx.x;
+    //int tile_number = blockIdx.y * gridDim.x + blockIdx.x;
     // int tile_number = y * reconstruction_pitch + x;
+
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int tile_number = blockIdx.y * width + x;
 
     if (tile_number >= nearest_neighbors_size)
         return;
@@ -100,10 +103,11 @@ unsigned char* reconstruct_image(int* nearest_neighbors, int image_cols,
     // dim3 reconstruction_dim_grid(w, h);
     // dim3 reconstruction_dim_block(block_size, block_size);
 
-    reconstruct_image_kernel<<<reconstruction_dim_grid,
-                               1 /*reconstruction_dim_block*/>>>(
-        reconstruction, /*reconstruction_pitch,*/ cuda_nearest_neighbor,
-        cuda_nearest_neighbors_size, cuda_lut, cuda_lut_size);
+    int w = std::ceil((float) tile_in_width / 32);
+    dim3 test(w, tile_in_height);
+
+    reconstruct_image_kernel<<<test, 32>>>(reconstruction, cuda_nearest_neighbor,
+        cuda_nearest_neighbors_size, cuda_lut, cuda_lut_size, tile_in_width);
 
     cudaDeviceSynchronize();
 
