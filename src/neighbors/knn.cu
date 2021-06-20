@@ -13,41 +13,70 @@ __global__ void compute_nearest_neighbors(const int* histo_tab,
                                         const size_t tiles_number)
 {
     size_t x = threadIdx.x;
-    size_t y = threadIdx.y;
     size_t tile_index = blockIdx.x;
 
-    if (x >= 256 || y >= 16 || tile_index >= tiles_number)
+    if (x >= 256 || tile_index >= tiles_number)
         return;
 
-     __shared__ int cluster_distances[16];
+    __shared__ float cluster_distances[16];
 
-    cluster_distances[y] = 0;
-
-    __syncthreads();
-
-
-    int value = *(histo_tab + tile_index * histo_pitch + x);
-
-    float cluster_value = *(clusters + y * cluster_pitch + x);
-
-    float local_distance = (cluster_value - value) * (cluster_value - value);
-
-    atomicAdd(cluster_distances + y, local_distance);
+    for (auto y = 0; x == 0 && y < 16; y++)
+        cluster_distances[y] = 0;
 
     __syncthreads();
 
+    int value = *(histo_tab + tile_index * histo_pitch / sizeof(int) + x);
+
+    for (auto y = 0; y < 16; y++)
+    {
+        float cluster_value = *(clusters + y * cluster_pitch / sizeof(float) + x);
+
+        // Euclidean distance
+        float local_distance = (cluster_value - value) * (cluster_value - value);
+
+        atomicAdd(cluster_distances + y, local_distance);
+    }
+
+    __syncthreads();
+
+    if (x != 0)
+        return;
+
+    //printf("cluster_distance[0]: %f\n", cluster_distances[0]);
 
     auto result_ptr = results + tile_index;
     *result_ptr = 0;
     for (int i = 1; i < 16; i++)
     {
         if (cluster_distances[*result_ptr] > cluster_distances[i])
+        {
+            //printf("Change\n");
             *result_ptr = i;
+        }
+        //printf("clusters_distance: %f at %d\n", cluster_distances[i], i);
     }
+
+    //printf("result: %d\n", *result_ptr);
 }
 
 void k_nearest_neighbors(const int* histo_tab, const float* clusters, const size_t tiles_number)
 {
+
+    /*for (int i = 0; i < 16; ++i)
+        printf("%f|", clusters[i * 256], i);
+
+    std::cout << "\n";
+
+    */
+    printf("histo[1]: %d\n", histo_tab[2]);
+    std::cout << "\n";
+
+    size_t sz;
+    cudaDeviceGetLimit(&sz, cudaLimitPrintfFifoSize);
+
+    sz = 1048576 * 100;
+    cudaDeviceSetLimit(cudaLimitPrintfFifoSize, sz);
+
     cudaError_t rc = cudaSuccess;
 
     int* cuda_histo_tab;
@@ -104,10 +133,21 @@ void k_nearest_neighbors(const int* histo_tab, const float* clusters, const size
     }
 
     dim3 block_dim(256, 16);
-    compute_nearest_neighbors<<<block_dim, tiles_number>>>(cuda_histo_tab, cuda_histo_tab_pitch,
+    compute_nearest_neighbors<<<tiles_number, 256>>>(cuda_histo_tab, cuda_histo_tab_pitch,
         cuda_clusters, cuda_clusters_pitch, result, tiles_number);
 
 
     int* output = (int*) malloc(sizeof(int) * tiles_number);
     rc = cudaMemcpy(output, result, sizeof(int) * tiles_number, cudaMemcpyDeviceToHost);
+
+
+    for (int i = 0; i < tiles_number; i++)
+    {
+        printf("value: %d at %d\n", output[i], i);
+    }
+
+    std::free(output);
+
+    cudaFree(cuda_clusters);
+    cudaFree(result);
 }

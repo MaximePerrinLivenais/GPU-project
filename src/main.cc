@@ -47,10 +47,10 @@ int main()
 
     int* histo = compute_lbp_values(image.data, image.cols, image.rows);
 
-    //size_t nb_tiles = image.cols * image.rows / 256;
-    //histo_to_file(histo, nb_tiles);
+    size_t nb_tiles = image.cols * image.rows / 256;
+    histo_to_file(histo, nb_tiles);
 
-    std::string filepath = "test.csv";
+    std::string filepath = "../data/image1_centroids.csv";
     auto centroids_vector = load_kmean_centroids(filepath);
 
     auto tiles_number = image.cols * image.rows / 256;

@@ -123,6 +123,7 @@ int* compute_lbp_values(const unsigned char* image, const size_t width,
     // TODO: Essayer ce calcul
     //auto width_tiles = width / 16 + (width % 16 != 0);
     //auto height_tiles = height / 16 + (height % 16 != 0);
+    // auto tiles_number = width_tiles * height_tiles;
     auto tiles_number = width * height / 256;
 
     //printf("tiles_number: %d, our tiles: %d\n", tiles_number, width_tiles * height_tiles);
@@ -196,7 +197,7 @@ int* compute_lbp_values(const unsigned char* image, const size_t width,
        sum += value;
     }
 
-    std::cout << "Sum: " << sum << "\n";
+    //std::cout << "Sum: " << sum << "\n";
 
     assert(sum == 256 * tiles_number);
 
