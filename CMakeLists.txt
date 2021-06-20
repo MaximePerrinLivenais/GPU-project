@@ -21,6 +21,8 @@ set(SRC_CPU
     "src/misc/image-load.hh"
     "src/misc/histo_to_file.cc"
     "src/misc/histo_to_file.hh"
+    "src/misc/load_kmeans.cc"
+    "src/misc/load_kmeans.hh"
 )
 
 set(SRC_GPU
