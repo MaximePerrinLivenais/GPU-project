@@ -53,7 +53,6 @@ unsigned char* reconstruct_image(int* nearest_neighbors, int image_cols,
 
     size_t pixels_number = image_rows * image_cols;
     size_t cuda_nearest_neighbors_size = pixels_number / 256;
-    assert(cuda_nearest_neighbors_size == tiles_number);
 
     rc = cudaMalloc(&cuda_nearest_neighbors, tiles_number * sizeof(int));
     if (rc)
