@@ -19,6 +19,9 @@ __global__ void reconstruct_image_kernel(unsigned char* reconstruction,
         return;
 
     auto centroid = nearest_neighbors[tile_number];
+    if (centroid >= lut_size)
+        return;
+
     unsigned char red = lut[centroid * 3 + 0];
     unsigned char green = lut[centroid * 3 + 1];
     unsigned char blue = lut[centroid * 3 + 2];
@@ -50,9 +53,6 @@ unsigned char* reconstruct_image(int* nearest_neighbors, int image_cols,
 
     // Nearest neighbors
     int* cuda_nearest_neighbors;
-
-    size_t pixels_number = image_rows * image_cols;
-    size_t cuda_nearest_neighbors_size = pixels_number / 256;
 
     rc = cudaMalloc(&cuda_nearest_neighbors, tiles_number * sizeof(int));
     if (rc)
