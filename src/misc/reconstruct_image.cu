@@ -1,5 +1,8 @@
-#include "build_lut.hh"
 #include "reconstruct_image.cuh"
+
+#include <cassert>
+
+#include "build_lut.hh"
 
 __global__ void reconstruct_image_kernel(unsigned char* reconstruction,
                                          const int* nearest_neighbors,
@@ -8,11 +11,6 @@ __global__ void reconstruct_image_kernel(unsigned char* reconstruction,
                                          const size_t lut_size,
                                          const size_t width)
 {
-    // int x = blockDim.x * blockIdx.x + threadIdx.x;
-    // int y = blockDim.y * blockIdx.y + threadIdx.y;
-    //int tile_number = blockIdx.y * gridDim.x + blockIdx.x;
-    // int tile_number = y * reconstruction_pitch + x;
-
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int tile_number = y * width + x;
@@ -35,17 +33,15 @@ unsigned char* reconstruct_image(int* nearest_neighbors, int image_cols,
 {
     cudaError_t rc = cudaSuccess;
 
+    size_t tile_size = 16;
+    size_t tiles_in_width = std::ceil((float)image_cols / tile_size);
+    size_t tiles_in_height = std::ceil((float)image_rows / tile_size);
+    size_t tiles_number = tiles_in_height * tiles_in_width;
+
     // Reconstructed image
     unsigned char* reconstruction;
-    // size_t reconstruction_pitch = 0;
 
-    rc = cudaMalloc(&reconstruction,
-                    image_cols / 16 * 3 * sizeof(unsigned char) * image_rows
-                        / 16);
-    // rc = cudaMallocPitch(&reconstruction, &reconstruction_pitch,
-    //                     image_cols / 16 * 3 * sizeof(unsigned char),
-    //                     image_rows / 16);
-
+    rc = cudaMalloc(&reconstruction, tiles_number * 3 * sizeof(unsigned char));
     if (rc)
     {
         std::cout << "Could not allocate memory for image reconstruction\n";
@@ -53,80 +49,64 @@ unsigned char* reconstruct_image(int* nearest_neighbors, int image_cols,
     }
 
     // Nearest neighbors
-    int* cuda_nearest_neighbor;
+    int* cuda_nearest_neighbors;
+
     size_t pixels_number = image_rows * image_cols;
     size_t cuda_nearest_neighbors_size = pixels_number / 256;
+    assert(cuda_nearest_neighbors_size == tiles_number);
 
-    rc = cudaMalloc(&cuda_nearest_neighbor, pixels_number / 256 * sizeof(int));
+    rc = cudaMalloc(&cuda_nearest_neighbors, tiles_number * sizeof(int));
     if (rc)
     {
         std::cout << "Could not allocate memory for the nearest neighbors\n";
         exit(EXIT_FAILURE);
     }
-    rc = cudaMemcpy(cuda_nearest_neighbor, nearest_neighbors,
-                    pixels_number / 256 * sizeof(int), cudaMemcpyHostToDevice);
+
+    rc = cudaMemcpy(cuda_nearest_neighbors, nearest_neighbors,
+                        tiles_number * sizeof(int), cudaMemcpyHostToDevice);
     if (rc)
     {
-        std::cout
-            << "Could not copy nearest neighbors result from host to device\n";
+        std::cout << "Could not copy nearest neighbors result from host to device\n";
         exit(EXIT_FAILURE);
     }
 
     // Look up table
     unsigned char* cuda_lut;
-    size_t cuda_lut_size = 16 * 3;
+    size_t lut_size = 16 * 3;
 
-    rc = cudaMalloc(&cuda_lut, 16 * 3 * sizeof(unsigned char));
+    rc = cudaMalloc(&cuda_lut, lut_size * sizeof(unsigned char));
     if (rc)
     {
         std::cout << "Could not allocate memory for the nearest neighbors\n";
         exit(EXIT_FAILURE);
     }
 
-    rc = cudaMemcpy(cuda_lut, lut, 16 * 3 * sizeof(unsigned char),
-                    cudaMemcpyHostToDevice);
+    rc = cudaMemcpy(cuda_lut, lut, lut_size * sizeof(unsigned char), cudaMemcpyHostToDevice);
     if (rc)
     {
         std::cout << "Could not copy lut from host to device\n";
         exit(EXIT_FAILURE);
     }
 
-    int bsize = 16;
-    int tile_in_width = std::ceil((float)image_cols / bsize);
-    int tile_in_height = std::ceil((float)image_rows / bsize);
+    size_t block_size = 32;
+    dim3 block_dim(block_size, block_size);
 
-    dim3 reconstruction_dim_grid(tile_in_width, tile_in_height);
+    int grid_width = std::ceil((float) tiles_in_width / block_size);
+    int grid_height = std::ceil((float) tiles_in_height / block_size);
+    dim3 grid_dim(grid_width, grid_height);
 
-    // int block_size = 32;
-    // int w = std::ceil((float)tile_in_width / block_size);
-    // int h = std::ceil((float)tile_in_height / block_size);
-
-    // dim3 reconstruction_dim_grid(w, h);
-    // dim3 reconstruction_dim_block(block_size, block_size);
-
-    int w = std::ceil((float) tile_in_width / 32);
-    int h = std::ceil((float) tile_in_height / 32);
-    dim3 test_block_dim(32, 32);
-    dim3 test_grid_dim(w, h);
-
-    reconstruct_image_kernel<<<test_grid_dim, test_block_dim>>>(reconstruction, cuda_nearest_neighbor,
-        cuda_nearest_neighbors_size, cuda_lut, cuda_lut_size, tile_in_width);
+    reconstruct_image_kernel<<<grid_dim, block_dim>>>(reconstruction, cuda_nearest_neighbors,
+        tiles_number, cuda_lut, lut_size, tiles_in_width);
 
     cudaDeviceSynchronize();
 
-    unsigned char* output = (unsigned char*)malloc(
-        tile_in_width * tile_in_height * 3 * sizeof(unsigned char));
+    unsigned char* output = (unsigned char*) malloc(tiles_number * 3 * sizeof(unsigned char));
 
-    // cudaMemcpy2D(output, tile_in_width * 3 * sizeof(unsigned char),
-    //             reconstruction, reconstruction_pitch,
-    //             tile_in_width * 3 * sizeof(unsigned char), tile_in_height,
-    //             cudaMemcpyDeviceToHost);
-    cudaMemcpy(output, reconstruction, tile_in_height * tile_in_width * 3,
-               cudaMemcpyDeviceToHost);
+    cudaMemcpy(output, reconstruction, tiles_number * 3, cudaMemcpyDeviceToHost);
 
     cudaFree(reconstruction);
     cudaFree(cuda_lut);
-    cudaFree(cuda_nearest_neighbor);
+    cudaFree(cuda_nearest_neighbors);
 
     return output;
 }
