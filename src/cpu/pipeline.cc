@@ -4,6 +4,7 @@
 #include "lbp.hh"
 #include "knn.hh"
 #include <opencv2/highgui.hpp>
+#include "misc/build_lut.hh"
 
 static cv::Mat reconstruct_image(std::vector<int> nn, size_t rows, size_t cols,
         size_t tile_size)
@@ -44,6 +45,9 @@ static cv::Mat reconstruct_image(std::vector<int> nn, size_t rows, size_t cols,
 
 cv::Mat full_pipeline(const cv::Mat& image, size_t tile_size)
 {
+    // Remove warning
+    (void)lut;
+
     auto histo = compute_lbp_values_cpu(image, tile_size);
     auto knn = compute_knn("../centroids.csv", histo, tile_size);
 

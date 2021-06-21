@@ -48,7 +48,7 @@ set(SRC_GPU
     "src/misc/reconstruct_image.cuh"
 )
 
-set(GPU_pipeline
+set(CPU_pipeline
     "src/cpu/pipeline.cc"
     "src/cpu/pipeline.hh"
     "src/cpu/lbp.hh"
@@ -57,23 +57,30 @@ set(GPU_pipeline
     "src/cpu/knn.cc"
 )
 
-add_executable(cpu-lbp-engine src/main.cc)
-target_sources(cpu-lbp-engine PRIVATE "${SRC_CPU}")
+add_executable(gpu-lbp-engine src/main.cc)
+target_sources(gpu-lbp-engine PRIVATE "${SRC_CPU}")
 
-add_library(gpu-lbp-engine SHARED ${SRC_GPU})
-target_compile_features(gpu-lbp-engine PUBLIC cxx_std_17)
-set_target_properties(gpu-lbp-engine PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+add_library(gpu-lbp-library SHARED ${SRC_GPU})
+target_compile_features(gpu-lbp-library PUBLIC cxx_std_17)
+set_target_properties(gpu-lbp-library PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
-target_link_libraries(cpu-lbp-engine
+target_link_libraries(gpu-lbp-engine
     "opencv_core;opencv_imgcodecs;opencv_highgui"
-    gpu-lbp-engine)
+    gpu-lbp-library)
 
 add_executable(bench src/bench/bench.cc)
 target_sources(bench PRIVATE "${SRC_CPU}")
 target_link_libraries(bench
     "opencv_core;opencv_imgcodecs;opencv_highgui"
-    gpu-lbp-engine
-    cpu-test
+    gpu-lbp-library
+    cpu-lbp-library
     benchmark)
 
-add_library(cpu-test SHARED "${GPU_pipeline}")
+add_library(cpu-lbp-library SHARED "${CPU_pipeline}")
+add_executable(cpu-lbp-engine src/cpu/main.cc)
+target_sources(cpu-lbp-engine PRIVATE "${SRC_CPU}")
+target_link_libraries(cpu-lbp-engine
+    "opencv_core;opencv_imgcodecs;opencv_highgui"
+    gpu-lbp-library
+    cpu-lbp-library
+)
