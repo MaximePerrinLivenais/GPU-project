@@ -5,7 +5,7 @@ import matplotlib.cm as cm
 import numpy as np
 import cv2
 from sklearn.cluster import KMeans
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neighbors import NearestNeighbors
 
 def split_image_into_tiles(image, tile_size = 16):
     tiles = []
@@ -69,32 +69,25 @@ def compute_image_patch_histogram(tiles):
 
 
 def random_lut(n_values):
-    '''Build a random LUT for `n_values` elements (sequential integers).'''
-    samples = np.linspace(0, 1, n_values)  # take n_values values between 0 and 1 (evenly spaced)
-    rng = np.random.default_rng(3)  # get a RNG with a specific seed
-    samples = rng.permutation(samples)  # shuffle our values
-    colors = cm.hsv(samples, alpha=None, bytes=True)  # get corresponding colors from the HSV color map
-    return colors[...,:3]  # remove alpha channel and return
-
+    samples = np.linspace(0, 1, n_values)
+    rng = np.random.default_rng(3)
+    samples = rng.permutation(samples)
+    colors = cm.hsv(samples, alpha=None, bytes=True)
+    return colors[...,:3]
 
 def lbp(image, tile_size = 16, n_cluster = 16):
 
     tiles = split_image_into_tiles(image, tile_size)
     histogram = compute_image_patch_histogram(tiles)
 
+    centroids = np.load("centroids.npy")
 
-    np.save(f"histo{tile_size}.npy", histogram)
+    neigh = NearestNeighbors(n_neighbors = 1)
+    neigh.fit(centroids)
 
-    #histogram = np.load(f"histo{tile_size}.npy")
+    distances, neigh_prediction = neigh.kneighbors(histogram)
 
-    kmeans = KMeans(n_clusters=n_cluster, random_state=128).fit(histogram)
-    nearest_centroid = kmeans.predict(histogram)
-
-
-    neigh = KNeighborsClassifier(n_neighbors = 1, metric="euclidean")
-    neigh.fit(histogram, nearest_centroid)
-
-    neigh_prediction = neigh.predict(histogram).reshape(image.shape[0] // tile_size, image.shape[1] // tile_size)
+    neigh_prediction = neigh_prediction.reshape(image.shape[0] // tile_size, image.shape[1] // tile_size)
 
     lut = random_lut(n_cluster)
     recolored_image = lut[neigh_prediction]
