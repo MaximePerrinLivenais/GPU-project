@@ -5,12 +5,9 @@
 #include "pipeline.hh"
 
 
-
-int main()
+int main(int argc, char *argv[])
 {
-    std::string file_path = "../data/images/barcode-00-01.jpg";
-
-    std::string image_path = cv::samples::findFile(file_path);
+    std::string image_path = cv::samples::findFile(argv[1]);
     auto image =  cv::imread(image_path, cv::IMREAD_GRAYSCALE);
 
     auto color_image = full_pipeline(image, 16);

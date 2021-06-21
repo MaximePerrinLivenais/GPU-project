@@ -60,7 +60,6 @@ std::vector<int> compute_knn(const std::string& filepath,
 {
     auto centroids_vect = load_kmean_centroids(filepath);
 
-    // Reshape centroids to (n_cluster, tile_size * tile_size)
     std::vector<std::vector<float>> centroids_reshape;
 
     size_t i = 0;

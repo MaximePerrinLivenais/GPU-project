@@ -6,7 +6,6 @@
 #include "cpu/pipeline.hh"
 #include "pipeline/pipeline.hh"
 
-/*
 static void BM_lbp_cpu(benchmark::State& state)
 {
     auto image = load_image("../data/images/barcode-00-01.jpg");
@@ -29,7 +28,7 @@ static void BM_lbp_gpu(benchmark::State& state)
 
     for (auto _ : state)
         compute_lbp_values(image.data, image.cols, image.rows);
-}*/
+}
 
 static void BM_pipeline_cpu(benchmark::State& state)
 {
@@ -61,7 +60,7 @@ static void custom_arguments(benchmark::internal::Benchmark* b)
         b->Args({i});
 }
 
-/*
+
 BENCHMARK(BM_lbp_cpu)
     ->Apply(custom_arguments)
     ->Unit(benchmark::kMillisecond)->UseRealTime();
@@ -69,7 +68,6 @@ BENCHMARK(BM_lbp_cpu)
 BENCHMARK(BM_lbp_gpu)
     ->Apply(custom_arguments)
     ->Unit(benchmark::kMillisecond)->UseRealTime();
-*/
 
 BENCHMARK(BM_pipeline_cpu)
     ->Apply(custom_arguments)

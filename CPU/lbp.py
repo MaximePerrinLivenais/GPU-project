@@ -95,6 +95,7 @@ def lbp(image, tile_size = 16, n_cluster = 16):
 
     return recolored_image
 
+
 if __name__ == "__main__":
 
     image_path = sys.argv[1]
