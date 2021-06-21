@@ -62,4 +62,7 @@ target_sources(bench PRIVATE "${SRC_CPU}")
 target_link_libraries(bench
     "opencv_core;opencv_imgcodecs;opencv_highgui"
     gpu-lbp-engine
+    cpu-test
     benchmark)
+
+add_library(cpu-test SHARED "src/cpu/lbp.cc")

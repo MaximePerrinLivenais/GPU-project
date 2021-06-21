@@ -40,7 +40,7 @@ std::vector<int> compute_texton_histo(const cv::Mat& image)
     return texton_histo;
 }
 
-std::vector<std::vector<int>> compute_lbp_values(const cv::Mat& image,
+std::vector<std::vector<int>> compute_lbp_values_cpu(const cv::Mat& image,
         size_t tile_size)
 {
     std::vector<std::vector<int>> image_histo;
