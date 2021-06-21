@@ -2,9 +2,6 @@
 
 #include <iostream>
 
-#define N_CLUSTERS = 16
-#define TILE_SIZE = 256 // A MOVE DANS UN HH
-
 __global__ void compute_nearest_neighbors(const int* histo_tab,
                                         const size_t histo_pitch,
                                         const float* clusters,
@@ -42,41 +39,17 @@ __global__ void compute_nearest_neighbors(const int* histo_tab,
     if (x != 0)
         return;
 
-    //printf("cluster_distance[0]: %f\n", cluster_distances[0]);
-
     auto result_ptr = results + tile_index;
     *result_ptr = 0;
     for (int i = 1; i < 16; i++)
     {
         if (cluster_distances[*result_ptr] > cluster_distances[i])
-        {
-            //printf("Change\n");
             *result_ptr = i;
-        }
-        //printf("clusters_distance: %f at %d\n", cluster_distances[i], i);
     }
-
-    //printf("result: %d\n", *result_ptr);
 }
 
 int* k_nearest_neighbors(const int* histo_tab, const float* clusters, const size_t tiles_number)
 {
-
-    /*for (int i = 0; i < 16; ++i)
-        printf("%f|", clusters[i * 256], i);
-
-    std::cout << "\n";
-
-    */
-    printf("histo[1]: %d\n", histo_tab[2]);
-    std::cout << "\n";
-
-    size_t sz;
-    cudaDeviceGetLimit(&sz, cudaLimitPrintfFifoSize);
-
-    sz = 1048576 * 100;
-    cudaDeviceSetLimit(cudaLimitPrintfFifoSize, sz);
-
     cudaError_t rc = cudaSuccess;
 
     int* cuda_histo_tab;
@@ -139,14 +112,6 @@ int* k_nearest_neighbors(const int* histo_tab, const float* clusters, const size
 
     int* output = (int*) malloc(sizeof(int) * tiles_number);
     rc = cudaMemcpy(output, result, sizeof(int) * tiles_number, cudaMemcpyDeviceToHost);
-
-
-    for (int i = 0; i < tiles_number; i++)
-    {
-        printf("value: %d at %d\n", output[i], i);
-    }
-
-    // std::free(output);
 
     cudaFree(cuda_clusters);
     cudaFree(result);
