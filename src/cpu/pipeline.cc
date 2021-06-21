@@ -8,7 +8,6 @@
 static cv::Mat reconstruct_image(std::vector<int> nn, size_t rows, size_t cols,
         size_t tile_size)
 {
-    std::cout << nn.size() << "\n";
     static unsigned char lut[16][3] = {
         { 84,   0, 255},
         {255,   0,  23},
@@ -43,11 +42,8 @@ static cv::Mat reconstruct_image(std::vector<int> nn, size_t rows, size_t cols,
     return reconstructed_image;
 }
 
-cv::Mat full_pipeline(const std::string& file_path, size_t tile_size)
+cv::Mat full_pipeline(const cv::Mat& image, size_t tile_size)
 {
-    std::string image_path = cv::samples::findFile(file_path);
-    auto image =  cv::imread(image_path, cv::IMREAD_GRAYSCALE);
-
     auto histo = compute_lbp_values_cpu(image, tile_size);
     auto knn = compute_knn("../centroids.csv", histo, tile_size);
 

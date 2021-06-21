@@ -10,7 +10,10 @@ int main()
 {
     std::string file_path = "../data/images/barcode-00-01.jpg";
 
-    auto color_image = full_pipeline(file_path, 16);
+    std::string image_path = cv::samples::findFile(file_path);
+    auto image =  cv::imread(image_path, cv::IMREAD_GRAYSCALE);
+
+    auto color_image = full_pipeline(image, 16);
 
     cv::imwrite("output.png", color_image);
 

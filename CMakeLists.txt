@@ -35,6 +35,8 @@ set(SRC_CPU
     "src/misc/load_kmeans.cc"
     "src/misc/load_kmeans.hh"
     "src/misc/build_lut.hh"
+    "src/pipeline/pipeline.cc"
+    "src/pipeline/pipeline.hh"
 )
 
 set(SRC_GPU
@@ -44,6 +46,15 @@ set(SRC_GPU
     "src/neighbors/knn.cuh"
     "src/misc/reconstruct_image.cu"
     "src/misc/reconstruct_image.cuh"
+)
+
+set(GPU_pipeline
+    "src/cpu/pipeline.cc"
+    "src/cpu/pipeline.hh"
+    "src/cpu/lbp.hh"
+    "src/cpu/lbp.cc"
+    "src/cpu/knn.hh"
+    "src/cpu/knn.cc"
 )
 
 add_executable(cpu-lbp-engine src/main.cc)
@@ -65,4 +76,4 @@ target_link_libraries(bench
     cpu-test
     benchmark)
 
-add_library(cpu-test SHARED "src/cpu/lbp.cc")
+add_library(cpu-test SHARED "${GPU_pipeline}")
