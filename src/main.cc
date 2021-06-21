@@ -16,7 +16,7 @@ int main()
     /* To deal with unused error because only used in cuda code */
     (void)lut;
 
-    auto image = load_image("../data/images/barcode-00-01.jpg");
+    auto image = load_image("../data/images/barcode-LesTangzouzes-03.jpg");
     cv::imwrite("grayscale.png", image);
 
     int* histo = compute_lbp_values(image.data, image.cols, image.rows);
