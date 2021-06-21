@@ -10,7 +10,7 @@ double euclidian_distance(const std::vector<float>& centroid,
     double euclidian_distance = 0;
 
     for (size_t i = 0; i < centroid.size(); i++)
-        euclidian_distance += centroid[i] * histogram[i];
+        euclidian_distance += (centroid[i] - histogram[i]) * (centroid[i] - histogram[i]);
 
     return std::sqrt(euclidian_distance);
 }
