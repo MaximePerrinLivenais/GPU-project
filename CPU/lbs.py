@@ -79,7 +79,6 @@ def random_lut(n_values):
 
 def lbp(image, tile_size = 16, n_cluster = 16):
 
-    print(image.shape)
     tiles = split_image_into_tiles(image, tile_size)
     histogram = compute_image_patch_histogram(tiles)
 
@@ -92,7 +91,7 @@ def lbp(image, tile_size = 16, n_cluster = 16):
     nearest_centroid = kmeans.predict(histogram)
 
 
-    neigh = KNeighborsClassifier(n_neighbors = n_cluster, metric="euclidean")
+    neigh = KNeighborsClassifier(n_neighbors = 1, metric="euclidean")
     neigh.fit(histogram, nearest_centroid)
 
     neigh_prediction = neigh.predict(histogram).reshape(image.shape[0] // tile_size, image.shape[1] // tile_size)
@@ -108,8 +107,8 @@ if __name__ == "__main__":
     image_path = sys.argv[1]
     image = io.imread(image_path, as_gray=True)
 
-    image_color = lbp(image, 32, 64)
+    image_color = lbp(image, 16, 16)
     cv2.imwrite("filename.png", image_color)
+
     plt.imshow(image_color)
     plt.show()
-    print(image_color.shape)
