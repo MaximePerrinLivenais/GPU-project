@@ -14,4 +14,7 @@ int main(int argc, char *argv[])
     cv::imwrite("grayscale.png", image);
 
     launch_pipeline(image);
+
+    /* To deal with unused error because only used in cuda code */
+    (void)lut;
 }
