@@ -88,11 +88,11 @@ int* compute_lbp_values(const unsigned char* image, const size_t width,
 
     unsigned char* lbp_values;
     size_t lbp_pitch;
-    // TODO: Essayer ce calcul
-    //auto width_tiles = width / 16 + (width % 16 != 0);
-    //auto height_tiles = height / 16 + (height % 16 != 0);
-    // auto tiles_number = width_tiles * height_tiles;
-    auto tiles_number = width * height / 256;
+
+    auto tile_size = 16;
+    auto tiles_in_width = std::ceil((float) width / tile_size);
+    auto tiles_in_height = std::ceil((float) height / tile_size);
+    auto tiles_number = tiles_in_width * tiles_in_height;
 
     rc = cudaMallocPitch(&lbp_values, &lbp_pitch, 256 * sizeof(unsigned char), tiles_number);
     if (rc)
