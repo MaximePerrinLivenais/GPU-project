@@ -14,14 +14,14 @@
 int main()
 {
     /* To deal with unused error because only used in cuda code */
-    (void) lut;
+    (void)lut;
 
     auto image = load_image("../data/images/barcode-00-01.jpg");
     cv::imwrite("grayscale.png", image);
 
     int* histo = compute_lbp_values(image.data, image.cols, image.rows);
 
-    std::string filepath = "../data/image1_centroids.csv";
+    std::string filepath = "../data/centroids.csv";
     auto centroids_vector = load_kmean_centroids(filepath);
 
     auto tiles_number = image.cols * image.rows / 256;
