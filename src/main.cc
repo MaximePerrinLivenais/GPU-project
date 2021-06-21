@@ -20,6 +20,7 @@ int main()
     int* histo = compute_lbp_values(image.data, image.cols, image.rows);
 
     // TODO use cpp opencv
+    /*
     size_t nb_tiles = image.cols * image.rows / 256;
     int cluster_count = 16;
     cv::Mat sample(nb_tiles, 256, CV_32S, histo);
@@ -56,10 +57,13 @@ int main()
     std::cout << "centers[0,0]: " << centers.at<float>(0, 0) << '\n';
     std::cout << "all total" << centers.cols * centers.channels() * centers.rows
               << '\n';
+ */
+    std::string filepath = "../data/centroids.csv";
+    std::vector<float> centroids_vector = load_kmean_centroids(filepath);
 
     auto tiles_number = image.cols * image.rows / 256;
     int* nearest_neighbors =
-        k_nearest_neighbors(histo, vec.data(), tiles_number);
+        k_nearest_neighbors(histo, centroids_vector.data(), tiles_number);
 
     unsigned char* output_image =
         reconstruct_image(nearest_neighbors, image.cols, image.rows);
