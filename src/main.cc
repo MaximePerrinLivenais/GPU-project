@@ -13,13 +13,13 @@
 
 int main()
 {
+    /* To deal with unused error because only used in cuda code */
+    (void) lut;
+
     auto image = load_image("../data/images/barcode-00-01.jpg");
     cv::imwrite("grayscale.png", image);
 
     int* histo = compute_lbp_values(image.data, image.cols, image.rows);
-
-    size_t nb_tiles = image.cols * image.rows / 256;
-    histo_to_file(histo, nb_tiles);
 
     std::string filepath = "../data/image1_centroids.csv";
     auto centroids_vector = load_kmean_centroids(filepath);
@@ -36,7 +36,7 @@ int main()
 
     cv::imwrite("reconstruction.png", reconstruction);
 
-    std::cout << lut[0][1] << '\n';
-
     free(histo);
+    free(nearest_neighbors);
+    free(output_image);
 }
