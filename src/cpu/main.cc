@@ -7,6 +7,8 @@
 
 int main(int argc, char *argv[])
 {
+    (void)argc;
+
     std::string image_path = cv::samples::findFile(argv[1]);
     auto image =  cv::imread(image_path, cv::IMREAD_GRAYSCALE);
 

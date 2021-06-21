@@ -49,7 +49,7 @@ cv::Mat full_pipeline(const cv::Mat& image, size_t tile_size)
     (void)lut;
 
     auto histo = compute_lbp_values_cpu(image, tile_size);
-    auto knn = compute_knn("../centroids.csv", histo, tile_size);
+    auto knn = compute_knn("../data/centroids.csv", histo, tile_size);
 
     auto color_image = reconstruct_image(knn, image.rows, image.cols, tile_size);
     return color_image;

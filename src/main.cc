@@ -1,6 +1,7 @@
 #include "pipeline/pipeline.hh"
 #include <iostream>
 #include "misc/image-load.hh"
+#include "misc/build_lut.hh"
 
 int main(int argc, char *argv[])
 {
